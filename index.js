@@ -31,7 +31,13 @@ app.post('/webhook', async (req, res) => {
     if (req.body.object === 'page') {
         for (const entry of req.body.entry) {
             const webhook_event = entry.messaging[0];
-            console.log('Webhook event:', webhook_event); // Log để debug
+            console.log('Webhook event:', webhook_event);
+            
+            // Bỏ qua tin nhắn echo
+            if (webhook_event.message && webhook_event.message.is_echo) {
+                console.log('Skipping echo message');
+                continue;
+            }
             
             if (!webhook_event.sender || !webhook_event.sender.id) {
                 console.error('Invalid sender information');
@@ -41,20 +47,24 @@ app.post('/webhook', async (req, res) => {
             const sender_psid = webhook_event.sender.id;
             const message = webhook_event.message;
 
-            console.log('Processing message from sender:', sender_psid); // Log sender ID
+            // Bỏ qua các event delivery/read
+            if (!message || !message.text) {
+                console.log('Skipping non-message event');
+                continue;
+            }
+
+            console.log('Processing message from sender:', sender_psid);
             
-            if (message && message.text) {
-                try {
-                    const answer = await generateAnswer(message.text);
-                    console.log('Generated answer:', answer); // Log câu trả lời
-                    
-                    const sent = await sendMessage(sender_psid, answer);
-                    if (!sent) {
-                        console.error('Failed to send message to:', sender_psid);
-                    }
-                } catch (error) {
-                    console.error('Error processing message:', error);
+            try {
+                const answer = await generateAnswer(message.text);
+                console.log('Generated answer:', answer);
+                
+                const sent = await sendMessage(sender_psid, answer);
+                if (!sent) {
+                    console.error('Failed to send message to:', sender_psid);
                 }
+            } catch (error) {
+                console.error('Error processing message:', error);
             }
         }
         res.sendStatus(200);
