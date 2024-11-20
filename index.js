@@ -32,9 +32,8 @@ app.post('/webhook', async (req, res) => {
             const sender_psid = webhook_event.sender.id;
             const message = webhook_event.message;
 
-            if (message && message.text && message.text.startsWith('/gemini')) {
-                const question = message.text.replace('/gemini', '').trim();
-                const answer = await generateAnswer(question);
+            if (message && message.text) {
+                const answer = await generateAnswer(message.text);
                 await sendMessage(sender_psid, answer);
             }
         }
