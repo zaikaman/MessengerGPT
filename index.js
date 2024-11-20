@@ -4,8 +4,8 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const axios = require('axios');
 
 // Thay các giá trị này
-const GEMINI_API_KEY = "your_gemini_api_key";  // API key từ Google AI Studio
-const VERIFY_TOKEN = "your_verify_token";       // Tự đặt token bất kỳ
+const GEMINI_API_KEY = "AIzaSyBCCCvVlI3FyQKLYmI2SdASxPiZvh8VvHY";  // API key từ Google AI Studio
+const VERIFY_TOKEN = "123456";       // Tự đặt token bất kỳ
 const PAGE_ACCESS_TOKEN = "your_page_token";    // Token từ Facebook Developer Console
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
@@ -23,13 +23,16 @@ app.get('/webhook', (req, res) => {
 
 // Handle messages
 app.post('/webhook', async (req, res) => {
+    if (!req.body.entry || !req.body.entry[0].messaging) {
+        return res.sendStatus(400);
+    }
     if (req.body.object === 'page') {
         for (const entry of req.body.entry) {
             const webhook_event = entry.messaging[0];
             const sender_psid = webhook_event.sender.id;
             const message = webhook_event.message;
 
-            if (message.text.startsWith('/gemini')) {
+            if (message && message.text && message.text.startsWith('/gemini')) {
                 const question = message.text.replace('/gemini', '').trim();
                 const answer = await generateAnswer(question);
                 await sendMessage(sender_psid, answer);
@@ -67,6 +70,12 @@ async function sendMessage(sender_psid, text) {
         console.error('Error sending message:', error);
     }
 }
+
+// Thêm basic error handling
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('Something broke!');
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`)); 
