@@ -97,18 +97,27 @@ async function generateAnswer(senderId, question) {
         const model = genAI.getGenerativeModel({ model: "gemini-pro" });
         
         // Lưu câu hỏi của user vào history
-        saveToHistory(senderId, "user", question);
+        if (!chatHistory[senderId]) {
+            chatHistory[senderId] = [];
+        }
         
+        chatHistory[senderId].push({
+            role: "user",
+            parts: [{ text: question }]
+        });
+        
+        // Giữ lại 10 tin nhắn gần nhất
+        if (chatHistory[senderId].length > 10) {
+            chatHistory[senderId].shift();
+        }
+
         // Tạo prompt với context từ lịch sử
         const systemPrompt = "Bạn là một chatbot trợ giúp. Hãy trả lời một cách tự nhiên và ngắn gọn trong giới hạn 2000 ký tự.";
-        
-        // Lấy lịch sử chat
-        const history = chatHistory[senderId] || [];
         
         // Tạo nội dung chat với lịch sử
         const chatContent = [
             { role: "user", parts: [{ text: systemPrompt }] },
-            ...history
+            { role: "user", parts: [{ text: question }] }
         ];
 
         const result = await model.generateContent({
@@ -123,7 +132,10 @@ async function generateAnswer(senderId, question) {
         let responseText = result.response.text();
         
         // Lưu câu trả lời vào history
-        saveToHistory(senderId, "assistant", responseText);
+        chatHistory[senderId].push({
+            role: "model",
+            parts: [{ text: responseText }]
+        });
         
         if (responseText.length > 2000) {
             responseText = responseText.substring(0, 1997) + "...";
