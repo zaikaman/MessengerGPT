@@ -14,6 +14,7 @@ app.use(express.json());
 
 // Thêm vào đầu file, sau dòng 11
 const chatHistory = {};
+const pendingMessages = {};
 
 // Hàm để lưu tin nhắn vào history
 function saveToHistory(senderId, role, message) {
@@ -80,41 +81,28 @@ app.post('/webhook', async (req, res) => {
                 continue;
             }
 
-            // Xử lý tin nhắn có ảnh và/hoặc text
-            if (message.attachments && message.attachments.length > 0) {
-                const attachment = message.attachments[0];
-                if (attachment.type === 'image') {
-                    console.log('📸 Received image:', attachment.payload.url);
-                    try {
-                        // Xử lý ảnh
-                        const imageAnswer = await generateAnswerWithImage(sender_psid, attachment.payload.url);
-                        await sendMessage(sender_psid, imageAnswer);
-
-                        // Nếu có text kèm theo, xử lý thêm text
-                        if (message.text) {
-                            console.log('📝 Message also contains text:', message.text);
-                            const textAnswer = await generateAnswer(sender_psid, message.text);
-                            await sendMessage(sender_psid, "Về nội dung tin nhắn của bạn: " + textAnswer);
-                        }
-                    } catch (error) {
-                        console.error('❌ Error processing message with image:', error);
-                        await sendMessage(sender_psid, "Xin lỗi, có lỗi xảy ra khi xử lý tin nhắn của bạn.");
-                    }
-                    continue;
-                }
+            // Thêm tin nhắn vào pending
+            if (!pendingMessages[sender_psid]) {
+                pendingMessages[sender_psid] = {
+                    messages: [],
+                    timeout: null
+                };
             }
 
-            // Xử lý tin nhắn text thông thường
-            if (message.text) {
-                console.log('📝 Processing text message:', message.text);
-                try {
-                    const answer = await generateAnswer(sender_psid, message.text);
-                    await sendMessage(sender_psid, answer);
-                } catch (error) {
-                    console.error('❌ Error processing text message:', error);
-                    await sendMessage(sender_psid, "Xin lỗi, có lỗi xảy ra khi xử lý tin nhắn của bạn.");
-                }
+            pendingMessages[sender_psid].messages.push(message);
+
+            // Clear timeout cũ nếu có
+            if (pendingMessages[sender_psid].timeout) {
+                clearTimeout(pendingMessages[sender_psid].timeout);
             }
+
+            // Set timeout mới để xử lý nhóm tin nhắn
+            pendingMessages[sender_psid].timeout = setTimeout(async () => {
+                const messages = pendingMessages[sender_psid].messages;
+                delete pendingMessages[sender_psid];
+                
+                await processMessageGroup(sender_psid, messages);
+            }, 500); // Đợi 500ms để gom tin nhắn
         }
         res.sendStatus(200);
     }
@@ -280,5 +268,37 @@ async function generateAnswerWithImage(senderId, imageUrl) {
     } catch (error) {
         console.error('❌ Error analyzing image:', error);
         return "Xin lỗi, có lỗi xảy ra khi phân tích hình ảnh.";
+    }
+}
+
+async function processMessageGroup(sender_psid, messages) {
+    let imageUrl = null;
+    let text = null;
+
+    // Tìm ảnh và text trong nhóm tin nhắn
+    for (const msg of messages) {
+        if (msg.attachments && msg.attachments[0].type === 'image') {
+            imageUrl = msg.attachments[0].payload.url;
+        }
+        if (msg.text) {
+            text = msg.text;
+        }
+    }
+
+    try {
+        // Xử lý ảnh trước nếu có
+        if (imageUrl) {
+            const imageAnswer = await generateAnswerWithImage(sender_psid, imageUrl);
+            await sendMessage(sender_psid, imageAnswer);
+        }
+
+        // Xử lý text sau nếu có
+        if (text) {
+            const textAnswer = await generateAnswer(sender_psid, text);
+            await sendMessage(sender_psid, textAnswer);
+        }
+    } catch (error) {
+        console.error('❌ Error processing message group:', error);
+        await sendMessage(sender_psid, "Xin lỗi, có lỗi xảy ra khi xử lý tin nhắn của bạn.");
     }
 } 
