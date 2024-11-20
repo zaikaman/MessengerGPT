@@ -75,8 +75,10 @@ app.post('/webhook', async (req, res) => {
 async function generateAnswer(question) {
     try {
         const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        const prompt = `Hãy trả lời câu hỏi sau một cách ngắn gọn, súc tích trong giới hạn 2000 ký tự: ${question}`;
+        
         const result = await model.generateContent({
-            contents: [{ role: "user", parts: [{ text: question }] }]
+            contents: [{ role: "user", parts: [{ text: prompt }] }]
         });
         
         if (!result.response) {
@@ -84,7 +86,13 @@ async function generateAnswer(question) {
             return "Xin lỗi, có lỗi xảy ra khi xử lý câu hỏi.";
         }
 
-        const responseText = result.response.text();
+        let responseText = result.response.text();
+        
+        // Giới hạn độ dài response trong 2000 ký tự
+        if (responseText.length > 2000) {
+            responseText = responseText.substring(0, 1997) + "...";
+        }
+        
         console.log('Gemini response:', responseText);
         return responseText;
 
