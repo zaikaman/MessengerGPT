@@ -43,30 +43,31 @@ app.get('/webhook', (req, res) => {
 
 // Handle messages
 app.post('/webhook', async (req, res) => {
+    console.log('\n=== NEW WEBHOOK REQUEST ===');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    
     if (!req.body.entry || !req.body.entry[0].messaging) {
-        console.log('Invalid webhook payload:', req.body);
+        console.log('❌ Invalid webhook payload');
         return res.sendStatus(400);
     }
     
     if (req.body.object === 'page') {
         for (const entry of req.body.entry) {
             const webhook_event = entry.messaging[0];
-            console.log('Webhook event:', webhook_event);
+            console.log('\n🔄 Processing webhook event:', JSON.stringify(webhook_event, null, 2));
             
-            // Bỏ qua tin nhắn từ page
-            if (webhook_event.sender.id === '100087911203657') { // ID của page
-                console.log('Skipping message from page');
-                continue;
-            }
+            // Log sender và recipient
+            console.log('👤 Sender ID:', webhook_event.sender?.id);
+            console.log('📝 Recipient ID:', webhook_event.recipient?.id);
             
             // Bỏ qua tin nhắn echo
             if (webhook_event.message && webhook_event.message.is_echo) {
-                console.log('Skipping echo message');
+                console.log('⏩ Skipping echo message');
                 continue;
             }
             
             if (!webhook_event.sender || !webhook_event.sender.id) {
-                console.error('Invalid sender information');
+                console.error('❌ Invalid sender information');
                 continue;
             }
             
@@ -75,22 +76,27 @@ app.post('/webhook', async (req, res) => {
 
             // Bỏ qua các event delivery/read
             if (!message || !message.text) {
-                console.log('Skipping non-message event');
+                console.log('⏩ Skipping non-message event');
                 continue;
             }
 
-            console.log('Processing message from sender:', sender_psid);
+            console.log('📨 Message text:', message.text);
+            console.log('🔄 Processing message from sender:', sender_psid);
             
             try {
+                console.log('🤖 Generating answer...');
                 const answer = await generateAnswer(sender_psid, message.text);
-                console.log('Generated answer:', answer);
+                console.log('✅ Generated answer:', answer);
                 
+                console.log('📤 Sending message...');
                 const sent = await sendMessage(sender_psid, answer);
                 if (!sent) {
-                    console.error('Failed to send message to:', sender_psid);
+                    console.error('❌ Failed to send message to:', sender_psid);
+                } else {
+                    console.log('✅ Message sent successfully');
                 }
             } catch (error) {
-                console.error('Error processing message:', error);
+                console.error('❌ Error processing message:', error);
             }
         }
         res.sendStatus(200);
@@ -100,7 +106,13 @@ app.post('/webhook', async (req, res) => {
 // Generate answer using Gemini
 async function generateAnswer(senderId, question) {
     try {
+        console.log('\n=== GENERATING ANSWER ===');
+        console.log('🔄 Current chat history:', JSON.stringify(chatHistory[senderId] || [], null, 2));
+        
         const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        
+        // Log trước khi thêm vào history
+        console.log('➕ Adding user message to history:', question);
         
         // Lưu câu hỏi của user vào history
         if (!chatHistory[senderId]) {
@@ -130,6 +142,8 @@ Nếu được hỏi về danh tính, hãy khẳng định bạn là ChatGPT-4o.
             { role: "user", parts: [{ text: question }] }
         ];
 
+        console.log('📝 Chat content being sent to Gemini:', JSON.stringify(chatContent, null, 2));
+        
         const result = await model.generateContent({
             contents: chatContent
         });
@@ -151,19 +165,20 @@ Nếu được hỏi về danh tính, hãy khẳng định bạn là ChatGPT-4o.
             responseText = responseText.substring(0, 1997) + "...";
         }
         
-        console.log('Gemini response:', responseText);
+        console.log('✅ Final response:', responseText);
         return responseText;
 
     } catch (error) {
-        console.error('Gemini API Error:', error);
+        console.error('❌ Gemini API Error:', error);
         return "Xin lỗi, có lỗi xảy ra khi xử lý câu hỏi.";
     }
 }
 
 // Send message back to user
 async function sendMessage(sender_psid, text) {
-    console.log('Attempting to send message to PSID:', sender_psid);
-    console.log('Message content:', text);
+    console.log('\n=== SENDING MESSAGE ===');
+    console.log('📤 Attempting to send message to PSID:', sender_psid);
+    console.log('📝 Message content:', text);
     
     try {
         const requestBody = {
@@ -171,7 +186,7 @@ async function sendMessage(sender_psid, text) {
             message: { text: text }
         };
         
-        console.log('Request body:', JSON.stringify(requestBody));
+        console.log('📦 Request body:', JSON.stringify(requestBody, null, 2));
         
         const response = await axios.post(
             `https://graph.facebook.com/v18.0/me/messages`,
@@ -181,19 +196,16 @@ async function sendMessage(sender_psid, text) {
             }
         );
         
-        console.log('Facebook API Response:', response.data);
+        console.log('✅ Facebook API Response:', JSON.stringify(response.data, null, 2));
         
         if (response.data.error) {
-            console.error('Facebook API Error:', response.data.error);
+            console.error('❌ Facebook API Error:', response.data.error);
             return false;
         }
         
         return true;
     } catch (error) {
-        if (error.response?.data) {
-            console.error('Full Facebook API Error:', error.response.data);
-        }
-        console.error('Error sending message:', error.message);
+        console.error('❌ Error details:', error.response?.data || error.message);
         return false;
     }
 }
