@@ -134,7 +134,7 @@ app.post('/webhook', async (req, res) => {
                     console.error('❌ Error processing combined message:', error);
                     await sendMessage(sender_psid, "Xin lỗi, có lỗi xảy ra khi xử lý tin nhắn của bạn.");
                 }
-            }, 6000); // Đợi 3 giây để gom tin nhắn
+            }, 5000); // Đợi 3 giây để gom tin nhắn
         }
         res.sendStatus(200);
     }
