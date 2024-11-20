@@ -6,7 +6,7 @@ const axios = require('axios');
 // Thay các giá trị này
 const GEMINI_API_KEY = "AIzaSyBCCCvVlI3FyQKLYmI2SdASxPiZvh8VvHY";  // API key từ Google AI Studio
 const VERIFY_TOKEN = "123456";       // Tự đặt token bất kỳ
-const PAGE_ACCESS_TOKEN = "EAAhvjkgcrdYBOyuw0KiEYsZBLPHyqKzqUiNANAkkRu1ZBZCWDbo151bgGZCzRKx1VZAejpf322Ru9ZBOSdZBwRVL8ycsbcpLfdHGaK4kmrtfTGxXmZB0Wu2LPJRMgDoVSDE1FrW8eb6EJZAdPOuM6FnR59wUfq8y2GULPsOZBcmAU6ckjtPvxacFxwh9ZCKYm4PT8Ul";    // Token từ Facebook Developer Console
+const PAGE_ACCESS_TOKEN = "EAAXxk0ACgZBwBOZCVGgbrAyvF5ZBN1fQKy7LdgmbNlgWOjrZBgioxDZCZAAqLrwXh49tThOxcIj9kq1PUlzzn7MbkxqYRBM5lmIfnEYYErwxatmgFZCgujgcD3QTMQJq3G1bBX0QSDokxPFhQ09gZBPou4hwzfZAzZBQxZBemhJAlENGoKlDRCcd6U12ZCdJBi87ePZC7";    // Token từ Facebook Developer Console
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
