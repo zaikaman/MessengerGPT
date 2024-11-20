@@ -74,7 +74,7 @@ app.post('/webhook', async (req, res) => {
 // Generate answer using Gemini
 async function generateAnswer(question) {
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-exp-1114" });
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
         const result = await model.generateContent({
             contents: [{ role: "user", parts: [{ text: question }] }]
         });
