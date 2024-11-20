@@ -101,8 +101,40 @@ app.post('/webhook', async (req, res) => {
                 const messages = pendingMessages[sender_psid].messages;
                 delete pendingMessages[sender_psid];
                 
-                await processMessageGroup(sender_psid, messages);
-            }, 500); // Đợi 500ms để gom tin nhắn
+                // Gom nội dung từ tất cả tin nhắn
+                let combinedMessage = {
+                    text: '',
+                    imageUrl: null
+                };
+                
+                for (const msg of messages) {
+                    // Gom text
+                    if (msg.text) {
+                        combinedMessage.text += (combinedMessage.text ? ' ' : '') + msg.text;
+                    }
+                    // Lấy URL ảnh đầu tiên tìm thấy
+                    if (msg.attachments && msg.attachments[0]?.type === 'image' && !combinedMessage.imageUrl) {
+                        combinedMessage.imageUrl = msg.attachments[0].payload.url;
+                    }
+                }
+                
+                try {
+                    // Xử lý ảnh trước nếu có
+                    if (combinedMessage.imageUrl) {
+                        const imageAnswer = await generateAnswerWithImage(sender_psid, combinedMessage.imageUrl);
+                        await sendMessage(sender_psid, imageAnswer);
+                    }
+                    
+                    // Xử lý text sau nếu có
+                    if (combinedMessage.text) {
+                        const textAnswer = await generateAnswer(sender_psid, combinedMessage.text);
+                        await sendMessage(sender_psid, textAnswer);
+                    }
+                } catch (error) {
+                    console.error('❌ Error processing combined message:', error);
+                    await sendMessage(sender_psid, "Xin lỗi, có lỗi xảy ra khi xử lý tin nhắn của bạn.");
+                }
+            }, 3000); // Đợi 3 giây để gom tin nhắn
         }
         res.sendStatus(200);
     }
@@ -268,37 +300,5 @@ async function generateAnswerWithImage(senderId, imageUrl) {
     } catch (error) {
         console.error('❌ Error analyzing image:', error);
         return "Xin lỗi, có lỗi xảy ra khi phân tích hình ảnh.";
-    }
-}
-
-async function processMessageGroup(sender_psid, messages) {
-    let imageUrl = null;
-    let text = null;
-
-    // Tìm ảnh và text trong nhóm tin nhắn
-    for (const msg of messages) {
-        if (msg.attachments && msg.attachments[0].type === 'image') {
-            imageUrl = msg.attachments[0].payload.url;
-        }
-        if (msg.text) {
-            text = msg.text;
-        }
-    }
-
-    try {
-        // Xử lý ảnh trước nếu có
-        if (imageUrl) {
-            const imageAnswer = await generateAnswerWithImage(sender_psid, imageUrl);
-            await sendMessage(sender_psid, imageAnswer);
-        }
-
-        // Xử lý text sau nếu có
-        if (text) {
-            const textAnswer = await generateAnswer(sender_psid, text);
-            await sendMessage(sender_psid, textAnswer);
-        }
-    } catch (error) {
-        console.error('❌ Error processing message group:', error);
-        await sendMessage(sender_psid, "Xin lỗi, có lỗi xảy ra khi xử lý tin nhắn của bạn.");
     }
 } 
