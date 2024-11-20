@@ -33,8 +33,15 @@ app.post('/webhook', async (req, res) => {
             const message = webhook_event.message;
 
             if (message && message.text) {
-                const answer = await generateAnswer(message.text);
-                await sendMessage(sender_psid, answer);
+                try {
+                    const answer = await generateAnswer(message.text);
+                    const sent = await sendMessage(sender_psid, answer);
+                    if (!sent) {
+                        console.error('Failed to send message to:', sender_psid);
+                    }
+                } catch (error) {
+                    console.error('Error processing message:', error);
+                }
             }
         }
         res.sendStatus(200);
@@ -55,7 +62,7 @@ async function generateAnswer(question) {
 // Send message back to user
 async function sendMessage(sender_psid, text) {
     try {
-        await axios.post(
+        const response = await axios.post(
             `https://graph.facebook.com/v18.0/me/messages`,
             {
                 recipient: { id: sender_psid },
@@ -65,8 +72,20 @@ async function sendMessage(sender_psid, text) {
                 params: { access_token: PAGE_ACCESS_TOKEN }
             }
         );
+        
+        if (response.data.error) {
+            console.error('Facebook API Error:', response.data.error);
+            return false;
+        }
+        
+        return true;
     } catch (error) {
-        console.error('Error sending message:', error);
+        if (error.response) {
+            console.error('Facebook API Error:', error.response.data.error);
+        } else {
+            console.error('Error sending message:', error.message);
+        }
+        return false;
     }
 }
 
