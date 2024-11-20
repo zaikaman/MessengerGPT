@@ -12,6 +12,26 @@ const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 app.use(express.json());
 
+// Thêm vào đầu file, sau dòng 11
+const chatHistory = {};
+
+// Hàm để lưu tin nhắn vào history
+function saveToHistory(senderId, role, message) {
+    if (!chatHistory[senderId]) {
+        chatHistory[senderId] = [];
+    }
+    
+    chatHistory[senderId].push({
+        role: role,
+        parts: [{ text: message }]
+    });
+    
+    // Giữ lại 10 tin nhắn gần nhất
+    if (chatHistory[senderId].length > 10) {
+        chatHistory[senderId].shift();
+    }
+}
+
 // Webhook verification
 app.get('/webhook', (req, res) => {
     if (req.query['hub.verify_token'] === VERIFY_TOKEN) {
@@ -56,7 +76,7 @@ app.post('/webhook', async (req, res) => {
             console.log('Processing message from sender:', sender_psid);
             
             try {
-                const answer = await generateAnswer(message.text);
+                const answer = await generateAnswer(sender_psid, message.text);
                 console.log('Generated answer:', answer);
                 
                 const sent = await sendMessage(sender_psid, answer);
@@ -72,16 +92,27 @@ app.post('/webhook', async (req, res) => {
 });
 
 // Generate answer using Gemini
-async function generateAnswer(question) {
+async function generateAnswer(senderId, question) {
     try {
         const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-        const prompt = `Bạn là một chatbot trợ giúp. Hãy trả lời câu hỏi sau một cách tự nhiên và ngắn gọn trong giới hạn 2000 ký tự. 
-        Nếu người dùng nói "tiếp đi" hoặc tương tự, hãy hỏi họ muốn biết thêm thông tin gì.
         
-        Câu hỏi: ${question}`;
+        // Lưu câu hỏi của user vào history
+        saveToHistory(senderId, "user", question);
         
+        // Tạo prompt với context từ lịch sử
+        const systemPrompt = "Bạn là một chatbot trợ giúp. Hãy trả lời một cách tự nhiên và ngắn gọn trong giới hạn 2000 ký tự.";
+        
+        // Lấy lịch sử chat
+        const history = chatHistory[senderId] || [];
+        
+        // Tạo nội dung chat với lịch sử
+        const chatContent = [
+            { role: "user", parts: [{ text: systemPrompt }] },
+            ...history
+        ];
+
         const result = await model.generateContent({
-            contents: [{ role: "user", parts: [{ text: prompt }] }]
+            contents: chatContent
         });
         
         if (!result.response) {
@@ -90,6 +121,9 @@ async function generateAnswer(question) {
         }
 
         let responseText = result.response.text();
+        
+        // Lưu câu trả lời vào history
+        saveToHistory(senderId, "assistant", responseText);
         
         if (responseText.length > 2000) {
             responseText = responseText.substring(0, 1997) + "...";
