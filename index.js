@@ -45,7 +45,7 @@ app.post('/webhook', async (req, res) => {
 // Generate answer using Gemini
 async function generateAnswer(question) {
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        const model = genAI.getGenerativeModel({ model: "gemini-exp-1114" });
         const result = await model.generateContent(question);
         return result.response.text();
     } catch (error) {
