@@ -109,7 +109,7 @@ async function generateAnswer(senderId, question) {
         console.log('\n=== GENERATING ANSWER ===');
         console.log('🔄 Current chat history:', JSON.stringify(chatHistory[senderId] || [], null, 2));
         
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        const model = genAI.getGenerativeModel({ model: "gemini-exp-1114" });
         
         // Log trước khi thêm vào history
         console.log('➕ Adding user message to history:', question);
