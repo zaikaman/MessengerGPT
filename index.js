@@ -75,28 +75,33 @@ app.post('/webhook', async (req, res) => {
             const message = webhook_event.message;
 
             // Bỏ qua các event delivery/read
-            if (!message || !message.text) {
+            if (!message) {
                 console.log('⏩ Skipping non-message event');
                 continue;
             }
 
-            console.log('📨 Message text:', message.text);
-            console.log('🔄 Processing message from sender:', sender_psid);
-            
-            try {
-                console.log('🤖 Generating answer...');
-                const answer = await generateAnswer(sender_psid, message.text);
-                console.log('✅ Generated answer:', answer);
-                
-                console.log('📤 Sending message...');
-                const sent = await sendMessage(sender_psid, answer);
-                if (!sent) {
-                    console.error('❌ Failed to send message to:', sender_psid);
-                } else {
-                    console.log('✅ Message sent successfully');
+            // Xử lý tin nhắn có ảnh và/hoặc text
+            if (message.attachments && message.attachments.length > 0) {
+                const attachment = message.attachments[0];
+                if (attachment.type === 'image') {
+                    console.log('📸 Received image:', attachment.payload.url);
+                    try {
+                        // Xử lý ảnh
+                        const imageAnswer = await generateAnswerWithImage(sender_psid, attachment.payload.url);
+                        await sendMessage(sender_psid, imageAnswer);
+
+                        // Nếu có text kèm theo, xử lý thêm text
+                        if (message.text) {
+                            console.log('📝 Message also contains text:', message.text);
+                            const textAnswer = await generateAnswer(sender_psid, message.text);
+                            await sendMessage(sender_psid, "Về nội dung tin nhắn của bạn: " + textAnswer);
+                        }
+                    } catch (error) {
+                        console.error('❌ Error processing message with image:', error);
+                        await sendMessage(sender_psid, "Xin lỗi, có lỗi xảy ra khi xử lý tin nhắn của bạn.");
+                    }
+                    continue;
                 }
-            } catch (error) {
-                console.error('❌ Error processing message:', error);
             }
         }
         res.sendStatus(200);
@@ -218,3 +223,50 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`)); 
+
+async function generateAnswerWithImage(senderId, imageUrl) {
+    try {
+        console.log('\n=== GENERATING ANSWER FOR IMAGE ===');
+        const model = genAI.getGenerativeModel({ model: "gemini-exp-1114" });
+        
+        // Tải ảnh từ URL
+        const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+        const imageData = Buffer.from(imageResponse.data).toString('base64');
+        
+        // Tạo prompt cho việc phân tích ảnh
+        const prompt = "Hãy mô tả những gì bạn thấy trong hình ảnh này. Giữ câu trả lời ngắn gọn và tự nhiên.";
+        
+        const result = await model.generateContent({
+            contents: [
+                {
+                    role: "user",
+                    parts: [
+                        { text: prompt },
+                        {
+                            inline_data: {
+                                mime_type: "image/jpeg",
+                                data: imageData
+                            }
+                        }
+                    ]
+                }
+            ]
+        });
+
+        if (!result.response) {
+            return "Xin lỗi, tôi không thể phân tích hình ảnh này.";
+        }
+
+        let responseText = result.response.text();
+        
+        // Lưu vào history
+        saveToHistory(senderId, "user", "[Đã gửi một hình ảnh]");
+        saveToHistory(senderId, "model", responseText);
+        
+        return responseText;
+
+    } catch (error) {
+        console.error('❌ Error analyzing image:', error);
+        return "Xin lỗi, có lỗi xảy ra khi phân tích hình ảnh.";
+    }
+} 
