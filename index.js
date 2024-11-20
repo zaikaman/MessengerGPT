@@ -75,10 +75,22 @@ app.post('/webhook', async (req, res) => {
 async function generateAnswer(question) {
     try {
         const model = genAI.getGenerativeModel({ model: "gemini-exp-1114" });
-        const result = await model.generateContent(question);
-        return result.response.text();
+        const result = await model.generateContent({
+            contents: [{ role: "user", parts: [{ text: question }] }]
+        });
+        
+        if (!result.response) {
+            console.error('No response from Gemini');
+            return "Xin lỗi, có lỗi xảy ra khi xử lý câu hỏi.";
+        }
+
+        const responseText = result.response.text();
+        console.log('Gemini response:', responseText);
+        return responseText;
+
     } catch (error) {
-        return "Xin lỗi, có lỗi xảy ra.";
+        console.error('Gemini API Error:', error);
+        return "Xin lỗi, có lỗi xảy ra khi xử lý câu hỏi.";
     }
 }
 
