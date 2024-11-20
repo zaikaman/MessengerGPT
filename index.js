@@ -53,6 +53,12 @@ app.post('/webhook', async (req, res) => {
             const webhook_event = entry.messaging[0];
             console.log('Webhook event:', webhook_event);
             
+            // Bỏ qua tin nhắn từ page
+            if (webhook_event.sender.id === '100087911203657') { // ID của page
+                console.log('Skipping message from page');
+                continue;
+            }
+            
             // Bỏ qua tin nhắn echo
             if (webhook_event.message && webhook_event.message.is_echo) {
                 console.log('Skipping echo message');
