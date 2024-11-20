@@ -75,7 +75,10 @@ app.post('/webhook', async (req, res) => {
 async function generateAnswer(question) {
     try {
         const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-        const prompt = `Hãy trả lời câu hỏi sau một cách ngắn gọn, súc tích trong giới hạn 2000 ký tự: ${question}`;
+        const prompt = `Bạn là một chatbot trợ giúp. Hãy trả lời câu hỏi sau một cách tự nhiên và ngắn gọn trong giới hạn 2000 ký tự. 
+        Nếu người dùng nói "tiếp đi" hoặc tương tự, hãy hỏi họ muốn biết thêm thông tin gì.
+        
+        Câu hỏi: ${question}`;
         
         const result = await model.generateContent({
             contents: [{ role: "user", parts: [{ text: prompt }] }]
@@ -88,7 +91,6 @@ async function generateAnswer(question) {
 
         let responseText = result.response.text();
         
-        // Giới hạn độ dài response trong 2000 ký tự
         if (responseText.length > 2000) {
             responseText = responseText.substring(0, 1997) + "...";
         }
