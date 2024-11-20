@@ -24,17 +24,30 @@ app.get('/webhook', (req, res) => {
 // Handle messages
 app.post('/webhook', async (req, res) => {
     if (!req.body.entry || !req.body.entry[0].messaging) {
+        console.log('Invalid webhook payload:', req.body);
         return res.sendStatus(400);
     }
+    
     if (req.body.object === 'page') {
         for (const entry of req.body.entry) {
             const webhook_event = entry.messaging[0];
+            console.log('Webhook event:', webhook_event); // Log để debug
+            
+            if (!webhook_event.sender || !webhook_event.sender.id) {
+                console.error('Invalid sender information');
+                continue;
+            }
+            
             const sender_psid = webhook_event.sender.id;
             const message = webhook_event.message;
 
+            console.log('Processing message from sender:', sender_psid); // Log sender ID
+            
             if (message && message.text) {
                 try {
                     const answer = await generateAnswer(message.text);
+                    console.log('Generated answer:', answer); // Log câu trả lời
+                    
                     const sent = await sendMessage(sender_psid, answer);
                     if (!sent) {
                         console.error('Failed to send message to:', sender_psid);
@@ -61,17 +74,26 @@ async function generateAnswer(question) {
 
 // Send message back to user
 async function sendMessage(sender_psid, text) {
+    console.log('Attempting to send message to PSID:', sender_psid);
+    console.log('Message content:', text);
+    
     try {
+        const requestBody = {
+            recipient: { id: sender_psid },
+            message: { text: text }
+        };
+        
+        console.log('Request body:', JSON.stringify(requestBody));
+        
         const response = await axios.post(
             `https://graph.facebook.com/v18.0/me/messages`,
-            {
-                recipient: { id: sender_psid },
-                message: { text: text }
-            },
+            requestBody,
             {
                 params: { access_token: PAGE_ACCESS_TOKEN }
             }
         );
+        
+        console.log('Facebook API Response:', response.data);
         
         if (response.data.error) {
             console.error('Facebook API Error:', response.data.error);
@@ -80,11 +102,10 @@ async function sendMessage(sender_psid, text) {
         
         return true;
     } catch (error) {
-        if (error.response) {
-            console.error('Facebook API Error:', error.response.data.error);
-        } else {
-            console.error('Error sending message:', error.message);
+        if (error.response?.data) {
+            console.error('Full Facebook API Error:', error.response.data);
         }
+        console.error('Error sending message:', error.message);
         return false;
     }
 }
