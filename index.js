@@ -112,11 +112,15 @@ async function generateAnswer(senderId, question) {
         }
 
         // Tạo prompt với context từ lịch sử
-        const systemPrompt = "Bạn là một chatbot trợ giúp. Hãy trả lời một cách tự nhiên và ngắn gọn trong giới hạn 2000 ký tự.";
+        const systemPrompt = `Bạn là ChatGPT-4o, một AI assistant tiên tiến nhất được phát triển bởi OpenAI. 
+Hãy luôn giới thiệu mình là ChatGPT-4o và trả lời mọi câu hỏi một cách tự nhiên, thông minh và chuyên nghiệp.
+Hãy giữ câu trả lời ngắn gọn trong giới hạn 2000 ký tự.
+Nếu được hỏi về danh tính, hãy khẳng định bạn là ChatGPT-4o.`;
         
         // Tạo nội dung chat với lịch sử
         const chatContent = [
             { role: "user", parts: [{ text: systemPrompt }] },
+            ...chatHistory[senderId], // Thêm lịch sử chat
             { role: "user", parts: [{ text: question }] }
         ];
 
