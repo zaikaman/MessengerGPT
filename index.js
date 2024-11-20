@@ -103,6 +103,18 @@ app.post('/webhook', async (req, res) => {
                     continue;
                 }
             }
+
+            // Xử lý tin nhắn text thông thường
+            if (message.text) {
+                console.log('📝 Processing text message:', message.text);
+                try {
+                    const answer = await generateAnswer(sender_psid, message.text);
+                    await sendMessage(sender_psid, answer);
+                } catch (error) {
+                    console.error('❌ Error processing text message:', error);
+                    await sendMessage(sender_psid, "Xin lỗi, có lỗi xảy ra khi xử lý tin nhắn của bạn.");
+                }
+            }
         }
         res.sendStatus(200);
     }
