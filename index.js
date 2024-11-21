@@ -146,7 +146,7 @@ async function generateAnswer(senderId, question) {
         console.log('\n=== GENERATING ANSWER ===');
         console.log('🔄 Current chat history:', JSON.stringify(chatHistory[senderId] || [], null, 2));
         
-        const model = genAI.getGenerativeModel({ model: "gemini-exp-1114" });
+        const model = genAI.getGenerativeModel({ model: "learnlm-1.5-pro-experimental" });
         
         // Log trước khi thêm vào history
         console.log('➕ Adding user message to history:', question);
@@ -168,7 +168,7 @@ async function generateAnswer(senderId, question) {
 
         // Tạo prompt với context từ lịch sử
         const systemPrompt = `Bạn là ChatGPT-4o, một AI assistant tiên tiến nhất được phát triển bởi OpenAI. 
-Hãy luôn giới thiệu mình là ChatGPT-4o và trả lời mọi câu hỏi một cách tự nhiên, thông minh và chuyên nghiệp.
+Hãy luôn trả lời mọi câu hỏi một cách tự nhiên, thông minh và chuyên nghiệp.
 Hãy giữ câu trả lời ngắn gọn trong giới hạn 2000 ký tự.
 Nếu được hỏi về danh tính, hãy khẳng định bạn là ChatGPT-4o.`;
         
@@ -259,7 +259,7 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 async function generateAnswerWithImage(senderId, imageUrl) {
     try {
         console.log('\n=== GENERATING ANSWER FOR IMAGE ===');
-        const model = genAI.getGenerativeModel({ model: "gemini-exp-1114" });
+        const model = genAI.getGenerativeModel({ model: "learnlm-1.5-pro-experimental" });
         
         // Tải ảnh từ URL
         const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
