@@ -146,7 +146,7 @@ async function generateAnswer(senderId, question) {
         console.log('\n=== GENERATING ANSWER ===');
         console.log('🔄 Current chat history:', JSON.stringify(chatHistory[senderId] || [], null, 2));
         
-        const model = genAI.getGenerativeModel({ model: "gemini-exp-1114" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         
         // Log trước khi thêm vào history
         console.log('➕ Adding user message to history:', question);
@@ -259,7 +259,7 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 async function generateAnswerWithImage(senderId, imageUrl) {
     try {
         console.log('\n=== GENERATING ANSWER FOR IMAGE ===');
-        const model = genAI.getGenerativeModel({ model: "gemini-exp-1114" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         
         // Tải ảnh từ URL
         const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
