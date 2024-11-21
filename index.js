@@ -266,7 +266,7 @@ async function generateAnswerWithImage(senderId, imageUrl) {
         const imageData = Buffer.from(imageResponse.data).toString('base64');
         
         // Tạo prompt cho việc phân tích ảnh
-        const prompt = "Hãy mô tả những gì bạn thấy trong hình ảnh này. Giữ câu trả lời ngắn gọn và tự nhiên.";
+        const prompt = "Hãy trả lời câu hỏi của người dùng ở trên bằng cách nhìn vào hình ảnh này.";
         
         const result = await model.generateContent({
             contents: [
